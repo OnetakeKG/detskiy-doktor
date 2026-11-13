@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e2a38">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Доктор">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Детский доктор</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Главное меню -->
+<section id="scr-title" class="screen active">
+  <div class="title-box panel">
+    <canvas id="title-scene" width="240" height="135" class="pix title-scene"></canvas>
+    <h1>ДЕТСКИЙ<br>ДОКТОР</h1>
+    <p class="sub">Симулятор приёма педиатра</p>
+    <div id="title-doctor" class="title-doctor hidden">
+      <canvas id="title-avatar" class="pix avatar-sm"></canvas>
+      <div><b id="title-name"></b><br><span id="title-rank" class="muted"></span></div>
+    </div>
+    <div class="menu">
+      <button class="btn primary" id="btn-start">Начать смену</button>
+      <button class="btn" id="btn-profile">Врачи</button>
+      <button class="btn" id="btn-help">Как играть</button>
+      <button class="btn small" id="btn-sound">Звук: вкл</button>
+    </div>
+    <p class="disclaimer">Обучающая игра. Случаи составлены по клиническим рекомендациям Минздрава РФ и ВОЗ, коды — МКБ-10. Не заменяет консультацию врача.</p>
+  </div>
+</section>
+
+<!-- Выбор врача -->
+<section id="scr-slots" class="screen">
+  <div class="panel slots-box">
+    <h2>Врачи</h2>
+    <p class="muted">У каждого врача своя карьера: случаи не повторяются, пока не пройдены все доступные.</p>
+    <div id="slots" class="slots"></div>
+    <div class="row end"><button class="btn" id="btn-slots-back">Назад</button></div>
+  </div>
+</section>
+
+<!-- Профиль -->
+<section id="scr-profile" class="screen">
+  <div class="panel profile">
+    <h2>Профиль врача</h2>
+    <div class="profile-grid">
+      <div class="avatar-col">
+        <canvas id="avatar-preview" class="pix avatar-lg"></canvas>
+        <div class="row">
+          <button class="btn" id="btn-photo">📷 Из фото</button>
+          <button class="btn" id="btn-random">🎲 Случайный</button>
+        </div>
+        <input type="file" id="photo-input" accept="image/*" hidden>
+        <label class="colors">Цветов в палитре: <input type="range" id="photo-k" min="6" max="24" value="14"> <span id="photo-k-val">14</span></label>
+        <p class="muted small-text">Фото обрабатывается только на вашем компьютере и никуда не отправляется.</p>
+      </div>
+      <div class="form-col">
+        <label>Фамилия, имя врача
+          <input id="doc-name" maxlength="28" placeholder="Например: Иванова А.С.">
+        </label>
+        <label>Специальность
+          <select id="doc-spec"><option>Педиатр</option><option disabled>Терапевт (скоро)</option><option disabled>Хирург (скоро)</option></select>
+        </label>
+        <div class="row">
+          <button class="btn primary" id="btn-save-profile">Сохранить</button>
+          <button class="btn" id="btn-back-profile">Назад</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Кабинет -->
+<section id="scr-room" class="screen">
+  <header class="hud panel">
+    <canvas id="hud-avatar" class="pix avatar-sm"></canvas>
+    <div class="hud-doc"><b id="hud-name"></b><span id="hud-rank" class="muted"></span></div>
+    <div class="hud-stat"><span class="lbl">Пациент</span><b id="hud-patient">1/5</b></div>
+    <div class="hud-stat"><span class="lbl">Время приёма</span><b id="hud-time">0 / 15 мин</b></div>
+    <div class="hud-stat"><span class="lbl">Очки смены</span><b id="hud-score">0</b></div>
+    <button class="btn small" id="btn-quit">Меню</button>
+  </header>
+  <div class="room-grid">
+    <div class="left">
+      <div class="scene-wrap panel">
+        <canvas id="scene" width="240" height="135" class="pix scene"></canvas>
+        <div class="card" id="patient-card"></div>
+      </div>
+      <div class="speech panel" id="speech">
+        <div class="speech-who" id="speech-who"></div>
+        <div class="speech-text" id="speech-text"></div>
+      </div>
+      <div class="log panel" id="log"></div>
+    </div>
+    <div class="right panel">
+      <div class="tabs">
+        <button class="tab active" data-cat="a">Анамнез</button>
+        <button class="tab" data-cat="e">Осмотр</button>
+        <button class="tab" data-cat="t">Обследование</button>
+      </div>
+      <div class="qlist" id="qlist"></div>
+      <button class="btn primary big" id="btn-diagnose">Поставить диагноз</button>
+    </div>
+  </div>
+</section>
+
+<!-- Голубой код -->
+<section id="scr-code" class="screen">
+  <header class="hud panel code-hud">
+    <div class="code-title" id="code-title">ГОЛУБОЙ КОД</div>
+    <div class="hud-stat"><span class="lbl">Пациент</span><b id="code-counter"></b></div>
+    <div class="hud-stat"><span class="lbl">Время</span><b id="code-timer">0:00</b></div>
+  </header>
+  <div class="room-grid">
+    <div class="left">
+      <div class="scene-wrap panel">
+        <canvas id="code-scene" width="240" height="135" class="pix scene"></canvas>
+        <div class="card"><b id="code-patient"></b></div>
+      </div>
+      <div class="panel vitals" id="code-vitals"></div>
+      <div class="log panel" id="code-narr"></div>
+    </div>
+    <div class="right panel">
+      <div class="code-step" id="code-step"></div>
+      <div class="code-prompt" id="code-prompt"></div>
+      <div class="code-fb hidden" id="code-fb"></div>
+      <div class="options" id="code-options"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Результат приёма -->
+<section id="scr-result" class="screen">
+  <div class="panel result">
+    <div class="result-head">
+      <div class="grade" id="res-grade">A</div>
+      <div>
+        <h2 id="res-title"></h2>
+        <div id="res-score" class="res-score"></div>
+      </div>
+    </div>
+    <div id="res-body"></div>
+    <div class="row end">
+      <button class="btn primary" id="btn-next">Следующий пациент</button>
+    </div>
+  </div>
+</section>
+
+<!-- Конец смены -->
+<section id="scr-shift" class="screen">
+  <div class="panel result">
+    <h2>Смена окончена</h2>
+    <div id="shift-body"></div>
+    <div class="row end">
+      <button class="btn primary" id="btn-new-shift">Новая смена</button>
+      <button class="btn" id="btn-menu">В меню</button>
+    </div>
+  </div>
+</section>
+
+<!-- Диагноз -->
+<div class="modal hidden" id="dx-modal">
+  <div class="panel modal-box">
+    <h2 id="dx-title">Диагноз</h2>
+    <p class="muted" id="dx-hint"></p>
+    <div id="dx-options" class="options"></div>
+    <div class="row end">
+      <button class="btn" id="dx-cancel">Ещё спросить</button>
+      <button class="btn primary" id="dx-ok" disabled>Далее</button>
+    </div>
+  </div>
+</div>
+
+<!-- Помощь -->
+<div class="modal hidden" id="help-modal">
+  <div class="panel modal-box">
+    <h2>Как играть</h2>
+    <ul class="help">
+      <li>Пациенты приходят по очереди — один ребёнок или ребёнок с родителем. Смена — 5 пациентов. Случаи у одного врача не повторяются.</li>
+      <li>Выбирайте вопросы во вкладках <b>Анамнез</b>, <b>Осмотр</b> и <b>Обследование</b>. Каждое действие отнимает время приёма.</li>
+      <li>Важно задать <b>ключевые вопросы</b> — те, что подтверждают диагноз или исключают опасные состояния. Лишние вопросы и ненужные анализы снижают оценку.</li>
+      <li>Когда будете готовы — нажмите «Поставить диагноз», выберите диагноз по МКБ-10 и тактику ведения.</li>
+      <li>После приёма — разбор: что вы упустили, почему диагноз именно такой и на какие рекомендации он опирается.</li>
+      <li>Чем выше должность, тем сложнее пациенты (★ — сложность). За сложные случаи начисляется больше очков.</li>
+      <li><b>Голубой код.</b> Примерно раз в две смены в поликлинике случается экстренная ситуация — появляется «секретный» шестой пациент. Нужно выбрать верные действия по порядку; время идёт в секундах, а каждая ошибка стоит 15 секунд.</li>
+      <li>Когда все доступные случаи пройдены, начинается переаттестация: случаи повторяются, начиная с тех, где результат был хуже всего.</li>
+    </ul>
+    <div class="row end"><button class="btn primary" id="help-ok">Понятно</button></div>
+  </div>
+</div>
+
+<script src="cases.js"></script>
+<script src="cases2.js"></script>
+<script src="cases3.js"></script>
+<script src="codes.js"></script>
+<script src="why.js"></script>
+<script src="pixel.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
