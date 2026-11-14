@@ -1,10 +1,10 @@
 // Офлайн-режим: файлы игры кэшируются при первом открытии.
 // При обновлении игры увеличьте номер версии, чтобы телефоны получили новые файлы.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'detskiy-doktor-' + VERSION;
 const FILES = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
-  'cases.js', 'cases2.js', 'cases3.js', 'codes.js', 'why.js', 'pixel.js', 'game.js',
+  'cases.js', 'cases2.js', 'cases3.js', 'cases4.js', 'cases5.js', 'gastro.js', 'codes.js', 'why.js', 'pixel.js', 'game.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
 ];
 

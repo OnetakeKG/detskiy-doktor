@@ -9,10 +9,20 @@ const store = {
 
 const SHIFT_SIZE = 5;
 const SLOTS = 3;
-const RANKS = [
-  [0, 'Интерн'], [1000, 'Ординатор'], [3000, 'Участковый педиатр'],
-  [6000, 'Педиатр I категории'], [10000, 'Педиатр высшей категории'], [15000, 'Заведующий отделением'],
-];
+const RANK_POINTS = [0, 1000, 3000, 6000, 10000, 15000];
+// Специальности: свои должности и свой набор случаев (поле spec у случая; по умолчанию — педиатр).
+const SPECS = {
+  ped: {
+    name: 'Педиатр',
+    ranks: ['Интерн', 'Ординатор', 'Участковый педиатр', 'Педиатр I категории', 'Педиатр высшей категории', 'Заведующий отделением'],
+  },
+  gastro: {
+    name: 'Детский гастроэнтеролог',
+    ranks: ['Интерн', 'Ординатор-гастроэнтеролог', 'Детский гастроэнтеролог', 'Гастроэнтеролог I категории', 'Гастроэнтеролог высшей категории', 'Заведующий гастроэнтерологическим отделением'],
+  },
+};
+const specOf = p => (p && SPECS[p.spec]) ? p.spec : 'ped';
+const casesFor = spec => CASES.filter(c => (c.spec || ['ped']).includes(spec));
 // Вероятность уровня сложности случая для каждой должности (индекс = должность).
 const LEVEL_WEIGHTS = [
   { 1: 0.75, 2: 0.25 },
@@ -80,10 +90,10 @@ const sfx = {
 // ---------- утилиты ----------
 function rankIndex(points) {
   let r = 0;
-  RANKS.forEach(([p], i) => { if (points >= p) r = i; });
+  RANK_POINTS.forEach((p, i) => { if (points >= p) r = i; });
   return r;
 }
-const rankOf = points => RANKS[rankIndex(points)][1];
+const rankOf = (points, p) => SPECS[specOf(p || prof())].ranks[rankIndex(points)];
 function shuffle(a) {
   a = a.slice();
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
@@ -95,6 +105,7 @@ function show(id) {
   window.scrollTo(0, 0);
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+const seenCount = p => casesFor(specOf(p)).filter(c => c.id in p.stats.seen).length;
 const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
 
 function paintAvatar(canvas, p) {
@@ -114,7 +125,7 @@ function refreshTitle() {
   if (p) {
     $('#title-doctor').classList.remove('hidden');
     $('#title-name').textContent = 'Д-р ' + p.name;
-    $('#title-rank').textContent = `${rankOf(p.stats.points)} · принято пациентов: ${p.stats.patients}`;
+    $('#title-rank').textContent = `${esc(SPECS[specOf(p)].name)} · ${rankOf(p.stats.points, p)} · принято пациентов: ${p.stats.patients}`;
     paintAvatar($('#title-avatar'));
   } else {
     $('#title-doctor').classList.add('hidden');
@@ -158,8 +169,8 @@ function renderSlots() {
       const st = p.stats;
       card.innerHTML = `<canvas class="pix avatar-md"></canvas>
         <b>Д-р ${esc(p.name)}</b>
-        <span class="muted">${esc(rankOf(st.points))}</span>
-        <span class="small-text">Очки: ${st.points} · пациентов: ${st.patients}<br>Пройдено случаев: ${Object.keys(st.seen).length} из ${CASES.length}</span>
+        <span class="muted">${esc(SPECS[specOf(p)].name)} · ${esc(rankOf(st.points, p))}</span>
+        <span class="small-text">Очки: ${st.points} · пациентов: ${st.patients}<br>Пройдено случаев: ${seenCount(p)} из ${casesFor(specOf(p)).length}</span>
         <div class="row center">
           <button class="btn small primary" data-act="pick">${i === profiles.active ? 'Выбран' : 'Выбрать'}</button>
           <button class="btn small" data-act="edit">Изменить</button>
@@ -199,6 +210,9 @@ function openProfile(slot) {
   draft = p ? { name: p.name, seed: p.seed, avatar: p.avatar } : { name: '', seed: Math.floor(Math.random() * 1e9), avatar: null };
   lastPhoto = null;
   $('#doc-name').value = draft.name;
+  $('#doc-spec').value = p ? specOf(p) : 'ped';
+  $('#doc-spec').disabled = !!p;
+  $('#spec-note').textContent = p ? 'Специальность выбирается при создании врача.' : '';
   renderDraftAvatar();
   show('#scr-profile');
 }
@@ -232,7 +246,7 @@ $('#btn-save-profile').onclick = () => {
   const name = $('#doc-name').value.trim();
   if (!name) { $('#doc-name').focus(); $('#doc-name').placeholder = 'Введите имя!'; sfx.bad(); return; }
   const old = profiles.slots[draftSlot];
-  profiles.slots[draftSlot] = { name, seed: draft.seed, avatar: draft.avatar, stats: old ? old.stats : newStats() };
+  profiles.slots[draftSlot] = { name, seed: draft.seed, avatar: draft.avatar, spec: old ? specOf(old) : $('#doc-spec').value, stats: old ? old.stats : newStats() };
   profiles.active = draftSlot;
   saveProfiles();
   sfx.good();
@@ -250,12 +264,13 @@ function pickLevel(weights) {
 function pickCases(n) {
   const st = prof().stats;
   const weights = LEVEL_WEIGHTS[rankIndex(st.points)];
-  let pool = shuffle(CASES.filter(c => !(c.id in st.seen)));
+  const all = casesFor(specOf(prof()));
+  let pool = shuffle(all.filter(c => !(c.id in st.seen)));
   const out = [];
   // новых случаев не хватает — берём все оставшиеся новые, остальное добирает переаттестация (сначала худшие результаты)
   if (pool.length < n) {
     out.push(...pool);
-    const again = shuffle(CASES.filter(c => c.id in st.seen)).sort((a, b) => st.seen[a.id] - st.seen[b.id]);
+    const again = shuffle(all.filter(c => c.id in st.seen)).sort((a, b) => st.seen[a.id] - st.seen[b.id]);
     pool = again.slice(0, Math.max(n * 3, 10));
     n -= out.length;
   }
@@ -656,14 +671,14 @@ function endShift() {
     `<p>Очки за смену: <b>${shift.points}</b></p>
      <table class="shift-table"><tr><th>Пациент</th><th>Диагноз</th><th>Сложность</th><th>Оценка</th></tr>${rows.join('')}</table>
      ${rankNow !== shift.rankBefore ? `<div class="rank-up">★ Повышение! Новая должность: ${esc(rankNow)}<br><span class="small-text">Пациенты станут сложнее.</span></div>` : ''}
-     <p class="muted">Всего принято: ${st.patients} · точность диагнозов: ${Math.round(100 * st.correct / Math.max(1, st.patients))}% · пройдено случаев: ${Object.keys(st.seen).length} из ${CASES.length}<br>
+     <p class="muted">Всего принято: ${st.patients} · точность диагнозов: ${Math.round(100 * st.correct / Math.max(1, st.patients))}% · пройдено случаев: ${seenCount(prof())} из ${casesFor(specOf(prof())).length}<br>
      Должность: ${esc(rankNow)} · до следующей: ${nextRankText(st.points)}</p>`;
   if (rankNow !== shift.rankBefore) sfx.good();
   show('#scr-shift');
 }
 function nextRankText(p) {
-  const next = RANKS.find(([pts]) => pts > p);
-  return next ? `${next[0] - p} очков (${next[1]})` : 'вы достигли вершины карьеры!';
+  const i = RANK_POINTS.findIndex(pts => pts > p);
+  return i >= 0 ? `${RANK_POINTS[i] - p} очков (${SPECS[specOf(prof())].ranks[i]})` : 'вы достигли вершины карьеры!';
 }
 $('#btn-new-shift').onclick = () => { sfx.click(); startShift(); };
 $('#btn-menu').onclick = () => { sfx.click(); refreshTitle(); show('#scr-title'); };
@@ -678,7 +693,7 @@ $('#btn-quit').onclick = () => {
 function drawScene() {
   if (!cur) return;
   const ctx = $('#scene').getContext('2d');
-  PX.drawRoom(ctx, frame);
+  PX.drawRoom(ctx, frame, specOf(prof()));
   const p = cur.cs.patient;
   const tp = cur.talking === 'p', tc = cur.talking === 'c';
   if (p.kind === 'baby') {
@@ -707,7 +722,7 @@ function drawLying(ctx, x, floorY, look) {
 function drawCodeScene() {
   if (!code) return;
   const ctx = $('#code-scene').getContext('2d');
-  PX.drawRoom(ctx, frame);
+  PX.drawRoom(ctx, frame, specOf(prof()));
   const sc = code.sc;
   const lying = sc.lyingFrom !== undefined && code.step >= sc.lyingFrom;
   if (sc.patient.kind === 'baby') PX.drawPerson(ctx, 112, 122, code.comp, frame, false, code.look);

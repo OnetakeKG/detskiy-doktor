@@ -23,7 +23,7 @@
   <div class="title-box panel">
     <canvas id="title-scene" width="240" height="135" class="pix title-scene"></canvas>
     <h1>ДЕТСКИЙ<br>ДОКТОР</h1>
-    <p class="sub">Симулятор приёма педиатра</p>
+    <p class="sub">Симулятор приёма детского врача</p>
     <div id="title-doctor" class="title-doctor hidden">
       <canvas id="title-avatar" class="pix avatar-sm"></canvas>
       <div><b id="title-name"></b><br><span id="title-rank" class="muted"></span></div>
@@ -68,8 +68,9 @@
           <input id="doc-name" maxlength="28" placeholder="Например: Иванова А.С.">
         </label>
         <label>Специальность
-          <select id="doc-spec"><option>Педиатр</option><option disabled>Терапевт (скоро)</option><option disabled>Хирург (скоро)</option></select>
+          <select id="doc-spec"><option value="ped">Педиатр</option><option value="gastro">Детский гастроэнтеролог</option></select>
         </label>
+        <p class="muted small-text" id="spec-note"></p>
         <div class="row">
           <button class="btn primary" id="btn-save-profile">Сохранить</button>
           <button class="btn" id="btn-back-profile">Назад</button>
@@ -185,6 +186,7 @@
   <div class="panel modal-box">
     <h2>Как играть</h2>
     <ul class="help">
+      <li>При создании врача выберите специальность: <b>педиатр</b> или <b>детский гастроэнтеролог</b>. У каждой — свои пациенты и своя карьерная лестница.</li>
       <li>Пациенты приходят по очереди — один ребёнок или ребёнок с родителем. Смена — 5 пациентов. Случаи у одного врача не повторяются.</li>
       <li>Выбирайте вопросы во вкладках <b>Анамнез</b>, <b>Осмотр</b> и <b>Обследование</b>. Каждое действие отнимает время приёма.</li>
       <li>Важно задать <b>ключевые вопросы</b> — те, что подтверждают диагноз или исключают опасные состояния. Лишние вопросы и ненужные анализы снижают оценку.</li>
@@ -201,6 +203,9 @@
 <script src="cases.js"></script>
 <script src="cases2.js"></script>
 <script src="cases3.js"></script>
+<script src="cases4.js"></script>
+<script src="cases5.js"></script>
+<script src="gastro.js"></script>
 <script src="codes.js"></script>
 <script src="why.js"></script>
 <script src="pixel.js"></script>

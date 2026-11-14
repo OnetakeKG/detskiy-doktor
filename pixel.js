@@ -18,6 +18,12 @@ const PX = (() => {
     return '#' + ((1 << 24) | (f(r) << 16) | (f(g) << 8) | f(b)).toString(16).slice(1);
   }
 
+  function mix(a, b, k) {
+    const p = h => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+    const x = p(a), y = p(b);
+    return '#' + ((1 << 24) | x.reduce((acc, v, i) => acc | (Math.round(v + (y[i] - v) * k) << (16 - 8 * i)), 0)).toString(16).slice(1);
+  }
+
   const SKIN = ['#f6d5b8', '#efc3a1', '#e2ad86', '#c98d66', '#a86c4a', '#7d4f35'];
   const HAIR = ['#2b1d16', '#4a2f1f', '#7a4b2a', '#b07a3c', '#d9b26a', '#141414', '#8a3b22'];
   const GREY = ['#c9c9c9', '#a8a8a8', '#e3e0da'];
@@ -59,7 +65,8 @@ const PX = (() => {
     const top = baseY - D.H;
     const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(cx + x), Math.round(top + y), w, h); };
     const pale = s.sick.includes('pale');
-    const skin = pale ? shade(s.skin, 0.25) : s.skin;
+    let skin = pale ? shade(s.skin, 0.25) : s.skin;
+    if (s.sick.includes('jaundice')) skin = mix(skin, '#e8c547', 0.45);
     const skinD = shade(skin, -0.15);
     const { hw, hh, tw, th, lh } = D;
     const torsoY = hh + 1;
@@ -146,7 +153,8 @@ const PX = (() => {
     // младенец на руках
     if (baby) {
       const by = sy + 3;
-      const bskin = baby.sick.includes('pale') ? shade(baby.skin, 0.25) : baby.skin;
+      let bskin = baby.sick.includes('pale') ? shade(baby.skin, 0.25) : baby.skin;
+      if (baby.sick.includes('jaundice')) bskin = mix(bskin, '#e8c547', 0.45);
       R(-7, by + 1, 14, 7, '#f3e6c8');
       R(-7, by + 7, 14, 1, '#d9c9a6');
       R(-7, by - 1, 6, 6, bskin);
@@ -163,7 +171,7 @@ const PX = (() => {
   }
 
   // Кабинет педиатра (внутреннее разрешение 240×135).
-  function drawRoom(ctx, frame) {
+  function drawRoom(ctx, frame, spec) {
     const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
     R(0, 0, 240, 135, '#bfe3dc');
     for (let x = 0; x < 240; x += 12) R(x, 0, 1, 92, '#b3d9d1');
@@ -181,25 +189,34 @@ const PX = (() => {
     R(20 + cl % 30, 22, 10, 3, '#ffffff'); R(22 + cl % 30, 20, 6, 2, '#ffffff');
     R(36, 17, 2, 34, '#f6f6f2'); R(17, 33, 40, 2, '#f6f6f2');
     R(12, 54, 50, 3, '#d8d8d0');
-    // плакат
+    // плакат: у педиатра — крест, у гастроэнтеролога — желудок
     R(80, 18, 30, 38, '#fffdf5'); R(80, 18, 30, 2, '#e6e0cc');
-    R(91, 24, 8, 20, '#e74c3c'); R(85, 30, 20, 8, '#e74c3c');
+    if (spec === 'gastro') {
+      R(92, 21, 3, 6, '#e59866');
+      R(90, 26, 12, 6, '#e8857a'); R(88, 31, 16, 8, '#e8857a'); R(90, 39, 14, 4, '#e8857a');
+      R(98, 43, 6, 2, '#e8857a'); R(102, 41, 3, 6, '#e59866');
+      R(91, 33, 4, 3, '#f5b7b1');
+    } else { R(91, 24, 8, 20, '#e74c3c'); R(85, 30, 20, 8, '#e74c3c'); }
     R(84, 48, 22, 2, '#9aa'); R(86, 51, 18, 2, '#9aa');
     // ростомер
     R(124, 20, 6, 72, '#f9e79f');
     for (let y = 22; y < 90; y += 6) R(124, y, 3, 1, '#b7950b');
-    // кушетка
-    R(178, 74, 58, 8, '#ecf0f1'); R(178, 70, 58, 5, '#7fb3d5');
-    R(180, 82, 3, 12, '#95a5a6'); R(231, 82, 3, 12, '#95a5a6');
-    R(176, 60, 8, 14, '#7fb3d5');
+    // кушетка под окном
+    R(10, 74, 54, 8, '#ecf0f1'); R(10, 70, 54, 5, '#7fb3d5');
+    R(12, 82, 3, 12, '#95a5a6'); R(59, 82, 3, 12, '#95a5a6');
+    R(8, 60, 8, 14, '#7fb3d5');
     // шкафчик
     R(150, 46, 22, 46, '#f4f6f6'); R(150, 46, 22, 2, '#d5dbdb');
     R(152, 50, 18, 18, '#d6eaf8'); R(152, 70, 18, 20, '#e5e8e8');
     R(156, 54, 3, 10, '#f5b7b1'); R(161, 56, 3, 8, '#abebc6'); R(166, 53, 2, 11, '#f9e79f');
     R(160, 79, 2, 3, '#7b7d7d');
-    // дверь
-    R(196, 14, 30, 56, '#c49a6c'); R(199, 17, 24, 22, '#b5895c'); R(199, 42, 24, 26, '#b5895c');
-    R(220, 44, 2, 4, '#f1c40f');
+    // дверь (стоит на полу, с наличником и табличкой)
+    R(195, 22, 38, 71, '#8e6b47');
+    R(198, 25, 32, 67, '#c49a6c');
+    R(201, 29, 26, 26, '#b5895c'); R(201, 59, 26, 29, '#b5895c');
+    R(224, 56, 3, 5, '#f1c40f'); R(224, 56, 3, 1, '#d4ac0d');
+    R(205, 14, 18, 6, '#fdfefe'); R(207, 16, 14, 2, '#2e86c1');
+    R(195, 92, 38, 1, '#a8916c');
   }
 
   // Случайный аватар врача 32×32.
